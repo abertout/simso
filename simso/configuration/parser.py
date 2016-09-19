@@ -1,11 +1,14 @@
 # coding=utf-8
 
 from xml.dom.minidom import parse
-import os.path
+import os.path, re
 from simso.core.Task import TaskInfo, task_types
 from simso.core.Processor import ProcInfo
 from simso.core.Caches import Cache_LRU
 from simso.core.Scheduler import SchedulerInfo
+from simso.utils.StatsFunctions import cdf
+from simso.generator.task_generator import gen_proba_arrivals
+
 
 
 convert_function = {
@@ -14,6 +17,12 @@ convert_function = {
     'bool': bool,
     'str': str
 }
+
+
+#Proba
+proba_regex = r'\((\d+\.\d+),(\d+\.\d+)'
+def str_tuple_to_proba(str):
+    return map(lambda (y1,y2): (float(y1),float(y2)), str)
 
 
 class Parser(object):
@@ -83,11 +92,20 @@ class Parser(object):
             elif 'periodic' in attr and attr['periodic'].value == 'no':
                 task_type = 'APeriodic'
 
+            pmit = str_tuple_to_proba(re.findall(proba_regex, attr['PMIT'].value)) if 'PMIT' in attr else (float(attr['period'].value),1.0)
+
+            activation_date =  float(attr['activationDate'].value) if 'activationDate' in attr else 0
+
             list_activation_dates = []
             if ('list_activation_dates' in attr and
+                    attr['list_activation_dates'].value == '' and self.etm == unicode("pwcet")):
+                list_activation_dates = gen_proba_arrivals(pmit, activation_date, self.duration, round_to_int=False)
+            elif('list_activation_dates' in attr and
                     attr['list_activation_dates'].value != ''):
                 list_activation_dates = sorted(
                     map(float, attr['list_activation_dates'].value.split(',')))
+
+
 
             t = TaskInfo(
                 attr['name'].value,
@@ -96,14 +114,15 @@ class Parser(object):
                 'abort_on_miss' not in attr
                 or attr['abort_on_miss'].value == 'yes',
                 float(attr['period'].value),
-                float(attr['activationDate'].value)
-                if 'activationDate' in attr else 0,
+                activation_date,
                 int(attr['instructions'].value),
                 float(attr['mix'].value),
                 (self.cur_dir + '/' + attr['stack'].value,
                     self.cur_dir) if 'stack' in attr else ("", self.cur_dir),
                 float(attr['WCET'].value),
                 float(attr['ACET'].value) if 'ACET' in attr else 0,
+                cdf(str_tuple_to_proba(re.findall(proba_regex, attr['PWCET'].value)) if 'PWCET' in attr else (0.0,1.0)),
+                pmit,
                 float(attr['et_stddev'].value) if 'et_stddev' in attr else 0,
                 float(attr['deadline'].value),
                 float(attr['base_cpi'].value),

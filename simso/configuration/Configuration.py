@@ -8,6 +8,8 @@ from simso.core.Scheduler import SchedulerInfo
 from simso.core import Scheduler
 from simso.core.Task import TaskInfo
 from simso.core.Processor import ProcInfo
+from simso.generator.task_generator import gen_proba_arrivals
+from simso.utils.StatsFunctions import cdf
 
 from .GenerateConfiguration import generate
 from .parser import Parser
@@ -170,6 +172,7 @@ class Configuration(object):
                 "Context Load overhead can't be negative."
 
     def check_tasks(self):
+
         assert len(self._task_info_list) > 0, "At least one task is needed."
         for index, task in enumerate(self._task_info_list):
             # Id unique :
@@ -209,12 +212,26 @@ class Configuration(object):
             assert 0.0 <= task.mix <= 2.0, \
                 "A mix must be positive and less or equal than 2.0"
 
+            if self.etm == "pwcet":
+            
+                #assert 0.99 <= sum(map(lambda x: x[1],task.pwcet)) <= 1.01, \
+                 #   "The sum of the probabilities of the PWCET must be 1"
+
+            
+                assert 0.99 <= sum(map(lambda x: x[1],task.pmit)) <= 1.01, \
+                    "The sum of the probabilities of the PMIT must be 1"
+                 
+                assert task.task_type == "Probabilistic", \
+                    "In probabilistic mode, every task must be declared as probabilistic"
+               
+  
             if self.etm == "cache":
                 # stack
                 assert task.stack_file, "A task needs a stack profile."
 
                 # stack ok
                 assert task.csdp, "Stack not found or empty."
+
 
     def check_caches(self):
         for index, cache in enumerate(self._caches_list):
@@ -279,7 +296,7 @@ class Configuration(object):
 
     def add_task(self, name, identifier, task_type="Periodic",
                  abort_on_miss=True, period=10, activation_date=0,
-                 n_instr=0, mix=0.5, stack_file="", wcet=0, acet=0,
+                 n_instr=0, mix=0.5, stack_file="", wcet=0, acet=0, pwcet=(0,1.0),pmit=(0,1.0),
                  et_stddev=0, deadline=10, base_cpi=1.0, followed_by=None,
                  list_activation_dates=[], preemption_cost=0, data=None):
         """
@@ -287,10 +304,16 @@ class Configuration(object):
         """
         if data is None:
             data = dict((k, None) for k in self.task_data_fields)
+        
+        #proba
+        if self.etm == 'pwcet':
+            if not list_activation_dates:
+                list_activation_dates = gen_proba_arrivals(pmit, activation_date, self.duration, round_to_int=False)
+            pwcet = cdf(pwcet)
 
         task = TaskInfo(name, identifier, task_type, abort_on_miss, period,
                         activation_date, n_instr, mix,
-                        (stack_file, self.cur_dir), wcet, acet, et_stddev,
+                        (stack_file, self.cur_dir), wcet, acet, pwcet, pmit, et_stddev,
                         deadline, base_cpi, followed_by, list_activation_dates,
                         preemption_cost, data)
         self.task_info_list.append(task)

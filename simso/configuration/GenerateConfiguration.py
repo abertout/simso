@@ -6,7 +6,7 @@ from xml.etree import ElementTree
 from xml.dom import minidom
 import os
 
-
+#TODO adapt probabilistic
 def prettify(elem):
     """Return a pretty-printed XML string for the Element.
     """
@@ -112,6 +112,8 @@ def generate_tasks(top, task_info_list, fields):
                       'mix': str(task.mix),
                       'WCET': str(task.wcet),
                       'ACET': str(task.acet),
+                      'PWCET': str(task.pwcet),
+                      'PMIT': str(task.pmit),
                       'preemption_cost': str(task.preemption_cost),
                       'et_stddev': str(task.et_stddev)})
         if task.followed_by is not None:
