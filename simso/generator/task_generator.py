@@ -5,7 +5,7 @@ Tools for generating task sets.
 import numpy as np
 import random
 import math
-
+from simso.utils.StatsFunctions import cdf
 
 def UUniFastDiscard(n, u, nsets):
     sets = []
@@ -210,15 +210,33 @@ def gen_kato_utilizations(nsets, umin, umax, target_util):
 def next_arrival_poisson(period):
     return -math.log(1.0 - random.random()) * period
 
-
-def gen_arrivals(period, min_, max_, round_to_int=False):
-    def trunc(x, p):
+#move trunc method in misc files?
+def trunc(x, p):
         return int(x * 10 ** p) / float(10 ** p)
 
+def gen_arrivals(period, min_, max_, round_to_int=False):
     dates = []
     n = min_ - period
     while True:
         n += next_arrival_poisson(period) + period
+        if round_to_int:
+            n = int(round(n))
+        else:
+            n = trunc(n, 6)
+        if n > max_:
+            break
+        dates.append(n)
+    return dates
+
+
+def gen_proba_arrivals(periods, min_, max_, round_to_int=False):
+    dates = [min_]
+    cdf_periods =  cdf(periods)
+    
+    n = 0
+    while True:
+        rdm_mit = next(x[0] for x in cdf_periods if random.random() <= x[1])
+        n += rdm_mit
         if round_to_int:
             n = int(round(n))
         else:
