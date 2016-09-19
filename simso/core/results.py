@@ -166,7 +166,7 @@ class JobR(object):
     def abort(self, date):
         self.aborted = True
         self.end_date = date
-        self.response_time = date - self.activation_date
+        self.response_time = self.job.task.deadline + 1 #Just for testing, old -> self.response_time = date - self.activation_date
 
     def add_exec_time(self, duration):
         self.computation_time += duration

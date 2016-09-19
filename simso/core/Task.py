@@ -5,6 +5,7 @@ from SimPy.Simulation import Process, Monitor, hold, passivate
 from simso.core.Job import Job
 from simso.core.Timer import Timer
 from .CSDP import CSDP
+#from simso.generator.task_generator import gen_proba_arrivals
 
 import os
 import os.path
@@ -18,7 +19,7 @@ class TaskInfo(object):
     """
 
     def __init__(self, name, identifier, task_type, abort_on_miss, period,
-                 activation_date, n_instr, mix, stack_file, wcet, acet,
+                 activation_date, n_instr, mix, stack_file, wcet, acet, pwcet, pmit,
                  et_stddev, deadline, base_cpi, followed_by,
                  list_activation_dates, preemption_cost, data):
         """
@@ -33,6 +34,8 @@ class TaskInfo(object):
         :type stack_file: str
         :type wcet: float
         :type acet: float
+        :type pwcet: list
+        :type pmit: list
         :type et_stddev: float
         :type deadline: float
         :type base_cpi: float
@@ -50,6 +53,8 @@ class TaskInfo(object):
         self.mix = mix
         self.wcet = wcet
         self.acet = acet
+        self.pwcet = pwcet
+        self.pmit = pmit
         self.et_stddev = et_stddev
         self.base_cpi = base_cpi
         self._stack = None
@@ -341,13 +346,47 @@ class SporadicTask(GenericTask):
         return self._task_info.list_activation_dates
 
 
+class ProbaTask(GenericTask):
+    """
+    Probabilistic Task process. Inherits from :class:`GenericTask`. The jobs are
+    created using a PMIT.
+    """
+    fields = ['list_activation_dates', 'deadline', 'pwcet', 'pmit']
+
+    def execute(self):
+       
+        self._init()
+        for ndate in self.list_activation_dates:
+            yield hold, self, int(ndate * self._sim.cycles_per_ms) \
+                 - self._sim.now()
+            self.create_job()
+       
+
+
+    @property
+    def list_activation_dates(self):
+        return self._task_info.list_activation_dates
+
+
+    @property
+    def pwcet(self):
+        return self._task_info.pwcet
+
+    @property
+    def pmit(self):
+        return self._task_info.pmit
+
+
+
+
 task_types = {
     "Periodic": PTask,
     "APeriodic": ATask,
-    "Sporadic": SporadicTask
+    "Sporadic": SporadicTask,
+    "Probabilistic": ProbaTask
 }
 
-task_types_names = ["Periodic", "APeriodic", "Sporadic"]
+task_types_names = ["Periodic", "APeriodic", "Sporadic", "Probabilistic"]
 
 
 def Task(sim, task_info):
@@ -355,5 +394,4 @@ def Task(sim, task_info):
     Task factory. Return and instantiate the correct class according to the
     task_info.
     """
-
     return task_types[task_info.task_type](sim, task_info)

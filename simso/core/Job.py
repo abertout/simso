@@ -44,6 +44,7 @@ class Job(Process):
         self._monitor = monitor
         self._etm = etm
         self._was_running_on = task.cpu
+        self.et = task.wcet
 
         self._on_activate()
 
@@ -160,10 +161,14 @@ class Job(Process):
 
     @property
     def response_time(self):
-        if self._end_date:
+	if self._aborted and self._task._task_info.task_type == "Probabilistic":
+	    return (float(self._absolute_deadline + 1) / self._sim.cycles_per_ms -
+                    self._activation_date)     
+        elif self._end_date:
+	    #print(self.name,self._end_date,self._activation_date,self._end_date - self._activation_date)
             return (float(self._end_date) / self._sim.cycles_per_ms -
                     self._activation_date)
-        else:
+	else:
             return None
 
     @property
@@ -243,7 +248,7 @@ class Job(Process):
         Worst-Case Execution Time in milliseconds.
         Equivalent to ``self.task.wcet``.
         """
-        return self._task.wcet
+        return self.et
 
     @property
     def activation_date(self):

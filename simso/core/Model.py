@@ -39,6 +39,7 @@ class Model(Simulation):
             )
         except KeyError:
             print("Unknowned Execution Time Model.", configuration.etm)
+        
 
         self._task_list = []
         for task_info in task_info_list:
