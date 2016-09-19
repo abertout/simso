@@ -33,7 +33,7 @@ def main(argv):
         configuration.add_processor(name="CPU 1", identifier=1)
 
         # Add a scheduler:
-        configuration.scheduler_info.filename = "simso/schedulers/DM_mono.py"
+        configuration.scheduler_info.filename = "../simso/schedulers/DM_mono.py"
 
     # Check the config before trying to run it.
     configuration.check_all()
