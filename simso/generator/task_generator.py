@@ -17,10 +17,10 @@ def UUniFastDiscard(n, u, nsets):
             nextSumU = sumU * random.random() ** (1.0 / (n - i))
             utilizations.append(sumU - nextSumU)
             sumU = nextSumU
-        utilizations.append(nextSumU)
+        utilizations.append(sumU)
 
         # If no task utilization exceeds 1:
-        if not [ut for ut in utilizations if ut > 1]:
+        if all(ut <= 1 for ut in utilizations):
             sets.append(utilizations)
 
     return sets
@@ -141,7 +141,7 @@ def gen_ripoll(nsets, compute, deadline, period, target_util):
             d = c + random.randint(0, deadline)
             p = d + random.randint(0, period)
             task_set.append((c, d, p))
-            total_util += c / p
+            total_util += float(c) / p
         sets.append(task_set)
     return sets
 
@@ -165,7 +165,7 @@ def gen_uunifastdiscard(nsets, u, n):
 
     Returns `nsets` of `n` task utilizations.
     """
-    return UUniFastDiscard(u, n, nsets)
+    return UUniFastDiscard(n, u, nsets)
 
 
 def gen_randfixedsum(nsets, u, n):
@@ -180,12 +180,19 @@ def gen_randfixedsum(nsets, u, n):
         - `u`: Total utilization of the task set.
         - `nsets`: Number of sets to generate.
     """
-    return StaffordRandFixedSum(u, n, nsets)
+    return StaffordRandFixedSum(n, u, nsets)
 
 
 def gen_kato_utilizations(nsets, umin, umax, target_util):
     """
     Kato et al. tasksets generator.
+
+    A task set Γ is generated as follows. A new periodic task is appended
+    to Γ as long as U(Γ) ≤ Utot is satisfied. For each task τi, its
+    utilization Ui is computed based on a uniform distribution within the
+    range of [Umin, Umax]. Only the utilization of the task generated at the
+    very end is adjusted so that U(Γ) becomes equal to Utot (thus the Umin
+    constraint might not be satisfied for this task).
 
     Args:
         - `nsets`: Number of tasksets to generate.
